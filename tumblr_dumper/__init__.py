@@ -1,8 +1,13 @@
 import reprlib
 import collections.abc
 import collections
-import functools
 import operator
+
+
+class NoPostException(Exception):
+    '''
+    Raise if a tumblr blog have no post left.
+    '''
 
 
 class QuickAccessDict:
@@ -26,7 +31,10 @@ class QuickAccessDict:
         self._data = data
 
     def __repr__(self):
-        return '<QuickAccessDict data={}>'.format(reprlib.repr(self._data))
+        return 'QuickAccessDict(data={})'.format(reprlib.repr(self._data))
+
+    def to_dict(self):
+        return self._data
 
     def __getattr__(self, item):
         if hasattr(self._data, item):
@@ -62,24 +70,24 @@ class UniqueQueue:
     >>> uq.push_many([1,2,3,4,5])
     >>> len(uq)
     5
-    >>> def print_all():
+    >>> def print_all(uq):
     ...     while True:
     ...         try:
     ...             print(uq.get(),end=',')
     ...         except IndexError:
     ...             break
-    >>> print_all()
+    >>> print_all(uq)
     1,2,3,4,5,
     >>> non_hashable_items = [{'key': i} for i in range(3)]
     >>> non_hashable_items.append({'key': 2})
     >>> non_hashable_items
     [{'key': 0}, {'key': 1}, {'key': 2}, {'key': 2}]
     >>> uq.push_many(non_hashable_items) # put non-hashable will make it slower
-    >>> print_all()
+    >>> print_all(uq)
     {'key': 0},{'key': 1},{'key': 2},
     >>> uqwk = UniqueQueue(key=operator.itemgetter('key')) # using key reduce memory usage, and faster in some case
     >>> uqwk.push_many(non_hashable_items)
-    >>> uqwk.queue
+    >>> print_all(uqwk)
     {'key': 0},{'key': 1},{'key': 2},
     """
 
@@ -118,3 +126,41 @@ class UniqueQueue:
 
     def __len__(self):
         return len(self.queue)
+
+
+class TumblrPost(QuickAccessDict):
+    """
+    Tumblr post.
+    """
+
+
+class TumblrFetcher:
+    """
+    Fetch posts from tumblr blog.
+    ------------mechanism------------
+    posts:    00 01 02 03 04 05 06 07 08 09
+    get:        |01 02 03|
+    # bloger delete an post
+    posts:    01 02 03 04 05 06 07 08 09
+    get:                 |05 06 07|
+    # oop! 04 is missing! so offset -= (total_post_now - total_posts_before)
+    posts:    01 02 03 04 05 06 07 08 09
+    get:              |04 05 06|
+    # everything moves on...
+    posts:    01 02 03 04 05 06 07 08 09
+    get:                       |07 08 09|
+    ------------mechanism------------
+    Just call .fetch() repeatedly, it will return lists of TumblrBlog (There may be duplication).
+    When done, exception NoPostException will raise.
+    """
+    API_URL = 'https://api.tumblr.com/v2/blog/{blog}/posts/text?reblog_info=true&offset={offset}&api_key={api_key}'
+
+    def __init__(self, blog_identifier, api_key):
+        self.blog = blog_identifier
+        self.api_key = api_key
+        self.network = NetworkIO()
+        self.prev_result = None
+        self.prev_offset = 0
+
+    def fetch(self, offset=None):
+        pass

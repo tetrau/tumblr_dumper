@@ -2,6 +2,12 @@ import reprlib
 import collections.abc
 import collections
 import operator
+import logging
+import pprint
+import requests
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class NoPostException(Exception):
@@ -15,7 +21,8 @@ class QuickAccessDict:
     A dict like object with shortcut that function like object in javascript.
     >>> data = {'key_a': 'value_a',
     ... 'key_b': 'value_b',
-    ... 'key_c': [{'key_c1': 'value_c1'}, {'key_c2': 'value_c2'}]}
+    ... 'key_c': [{'key_c1': 'value_c1'}, {'key_c2': 'value_c2'}],
+    ... 'key_d':{'e':'f'}}
     >>> qad = QuickAccessDict(data)
     >>> qad.key_a
     'value_a'
@@ -25,12 +32,14 @@ class QuickAccessDict:
     Traceback (most recent call last):
         ...
     KeyError: 'no_such_key'
-    >>> QuickAccessDict(qad)
-    QuickAccessDict(data={'key_a': 'value_a', 'key_b': 'value_b', 'key_c': [{'key_c1': 'value_c1'}, {'key_c2': 'value_c2'}]})
+    >>> QuickAccessDict(qad) # doctest: +ELLIPSIS
+    QuickAccessDict(data={'key_a': 'value_a', ... {'key_c2': 'value_c2'}], 'key_d': {'e': 'f'}})
+    >>> qad.key_d
+    QuickAccessDict(data={'e': 'f'})
     """
 
     def __init__(self, data):
-        if isinstance(data, self.__class__):
+        if isinstance(data, QuickAccessDict):
             self._data = data.to_dict()
         else:
             self._data = dict(data)
@@ -59,12 +68,18 @@ class QuickAccessDict:
 
 class NetworkIO:
     """
-    Class controls the network io. It must have a get(self, url, header) method which return HTTP get
-    response in str.
+    Class controls the network io. It must have a get(self, url) method which return HTTP get
+    response in dict.
     """
 
-    def get(self, url, header):
-        pass
+    def __init__(self):
+        self.session = requests.session()
+
+
+    def get(self, url):
+        logger.debug('GET {}'.format(url))
+        r = self.session.get(url).json()
+        return r
 
 
 class UniqueQueue:
@@ -139,6 +154,12 @@ class TumblrPost(QuickAccessDict):
     """
 
 
+class NoPostException(Exception):
+    """
+    raise if a tumblr blog has no post left.
+    """
+
+
 class TumblrFetcher:
     """
     Fetch posts from tumblr blog.
@@ -158,7 +179,7 @@ class TumblrFetcher:
     Just call .fetch() repeatedly, it will return lists of TumblrBlog (There may be duplication).
     When done, exception NoPostException will raise.
     """
-    API_URL = 'https://api.tumblr.com/v2/blog/{blog}/posts/text?reblog_info=true&offset={offset}&api_key={api_key}'
+    API_URL = 'https://api.tumblr.com/v2/blog/{blog}/posts?reblog_info=true&offset={offset}&api_key={api_key}'
 
     def __init__(self, blog_identifier, api_key):
         self.blog = blog_identifier
@@ -176,7 +197,8 @@ class TumblrFetcher:
                                       offset=0,
                                       api_key=self.api_key)
             result = self.network.get(url)
-            self.prev_result = QuickAccessDict(result)
+            result = QuickAccessDict(result)
+            self.prev_result = result
             return [TumblrPost(r) for r in result.response.posts]
 
         def do_fetch():
@@ -191,12 +213,17 @@ class TumblrFetcher:
                 self.prev_offset += 20
                 return [TumblrPost(r) for r in result.response.posts]
             else:
-                delta_posts = (result.response.blog.total_posts -
-                               self.prev_result.response.blog.total_posts)
-                self.prev_offset -= 20
+                delta_posts = (self.prev_result.response.blog.total_posts
+                               - result.response.blog.total_posts)
+                self.prev_offset -= delta_posts
                 return self.fetch()
 
         if is_first_fetch():
-            return do_first_fetch()
+            result = do_first_fetch()
         else:
-            return do_fetch()
+            result = do_fetch()
+
+        if not result:
+            raise NoPostException()
+        else:
+            return result

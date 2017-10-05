@@ -20,15 +20,20 @@ class QuickAccessDict:
     >>> qad.key_a
     'value_a'
     >>> qad.key_c
-    [<QuickAccessDict data={'key_c1': 'value_c1'}>, <QuickAccessDict data={'key_c2': 'value_c2'}>]
+    [QuickAccessDict(data={'key_c1': 'value_c1'}), QuickAccessDict(data={'key_c2': 'value_c2'})]
     >>> qad.no_such_key
     Traceback (most recent call last):
         ...
     KeyError: 'no_such_key'
+    >>> QuickAccessDict(qad)
+    QuickAccessDict(data={'key_a': 'value_a', 'key_b': 'value_b', 'key_c': [{'key_c1': 'value_c1'}, {'key_c2': 'value_c2'}]})
     """
 
     def __init__(self, data):
-        self._data = data
+        if isinstance(data, self.__class__):
+            self._data = data.to_dict()
+        else:
+            self._data = dict(data)
 
     def __repr__(self):
         return 'QuickAccessDict(data={})'.format(reprlib.repr(self._data))
@@ -162,5 +167,36 @@ class TumblrFetcher:
         self.prev_result = None
         self.prev_offset = 0
 
-    def fetch(self, offset=None):
-        pass
+    def fetch(self):
+        def is_first_fetch():
+            return self.prev_result is None
+
+        def do_first_fetch():
+            url = self.API_URL.format(blog=self.blog,
+                                      offset=0,
+                                      api_key=self.api_key)
+            result = self.network.get(url)
+            self.prev_result = QuickAccessDict(result)
+            return [TumblrPost(r) for r in result.response.posts]
+
+        def do_fetch():
+            url = self.API_URL.format(blog=self.blog,
+                                      offset=self.prev_offset + 20,
+                                      api_key=self.api_key)
+            result = self.network.get(url)
+            result = QuickAccessDict(result)
+            self.prev_result = result
+            if (result.response.blog.total_posts >=
+                    self.prev_result.response.blog.total_posts):
+                self.prev_offset += 20
+                return [TumblrPost(r) for r in result.response.posts]
+            else:
+                delta_posts = (result.response.blog.total_posts -
+                               self.prev_result.response.blog.total_posts)
+                self.prev_offset -= 20
+                return self.fetch()
+
+        if is_first_fetch():
+            return do_first_fetch()
+        else:
+            return do_fetch()

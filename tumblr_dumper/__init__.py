@@ -104,3 +104,35 @@ class TumblrFetcher:
             raise NoPostException()
         else:
             return result
+
+
+class TumblrDumper:
+    """
+    The generator is used to dump all posts from a tumblr blog.
+    It iterate all posts without duplication.
+    """
+
+    def __init__(self, blog_identifier, api_key):
+        self.tumblr_fetcher = TumblrFetcher(blog_identifier, api_key)
+        self.buffer = UniqueQueue(key=lambda x: (x.id, x.timestamp))
+
+    def __iter__(self):
+        return self
+
+    def reload(self):
+        result = self.tumblr_fetcher.fetch()
+        self.buffer.push_many(result)
+
+    def total_posts(self):
+        return self.tumblr_fetcher.prev_result.response.blog.total_posts
+
+    def __next__(self):
+        if len(self.buffer) > 0:
+            return self.buffer.get()
+        else:
+            try:
+                self.reload()
+            except NoPostException:
+                raise StopIteration()
+            else:
+                return self.buffer.get()

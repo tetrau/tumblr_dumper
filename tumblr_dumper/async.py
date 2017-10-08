@@ -119,6 +119,7 @@ class AsyncTumblrDumper:
             try:
                 await self.reload()
             except NoPostException:
+                await self.tumblr_fetcher.network.session.close()
                 raise StopAsyncIteration()
             else:
                 return self.buffer.get()

@@ -1,6 +1,7 @@
 import logging
 import requests
 import requests.exceptions
+import json.decoder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -22,8 +23,10 @@ class NetworkIO:
         logger.debug('GET {}'.format(url))
         try:
             r = self.session.get(url).json()
-        except requests.exceptions.RequestException:
-            raise ConnectionException()
+        except requests.exceptions.RequestException as e:
+            raise ConnectionException(e)
+        except json.decoder.JSONDecodeError as e:
+            raise ConnectionException(e)
         else:
             if r['meta']['status'] != 200:
                 raise HTTPException(r['meta']['status'], r['meta']['msg'])

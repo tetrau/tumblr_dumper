@@ -1,6 +1,7 @@
 import logging
 import aiohttp
 import json
+import json.decoder
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -30,6 +31,8 @@ class AsyncNetworkIO:
             r = json.loads(await r.text())
         except aiohttp.ClientError as e:
             raise ConnectionException(e)
+        except json.decoder.JSONDecodeError as e:
+            raise ConnectionError(e)
         else:
             if r['meta']['status'] != 200:
                 raise HTTPException(r['meta']['status'], r['meta']['msg'])

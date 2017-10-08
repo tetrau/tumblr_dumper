@@ -1,6 +1,7 @@
 import logging
 import requests
 import requests.exceptions
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -28,9 +29,6 @@ class NetworkIO:
                 raise HTTPException(r['meta']['status'], r['meta']['msg'])
             else:
                 return r
-
-
-
 
 
 class TumblrPost(QuickAccessDict):
@@ -107,6 +105,7 @@ class TumblrFetcher:
         else:
             return result
 
+
 class TumblrDumper:
     """
     The generator is used to dump all posts from a tumblr blog.
@@ -116,6 +115,7 @@ class TumblrDumper:
     def __init__(self, blog_identifier, api_key):
         self.tumblr_fetcher = TumblrFetcher(blog_identifier, api_key)
         self.buffer = UniqueQueue(key=lambda x: (x.id, x.timestamp))
+        self.stop = False
 
     def __iter__(self):
         return self
@@ -132,8 +132,15 @@ class TumblrDumper:
             return self.buffer.get()
         else:
             try:
-                self.reload()
+                if self.stop:
+                    raise NoPostException()
+                else:
+                    self.reload()
             except NoPostException:
-                raise StopIteration()
+                self.stop = True
+                if len(self.buffer) == 0:
+                    raise StopIteration()
+                else:
+                    return self.buffer.get()
             else:
                 return self.buffer.get()

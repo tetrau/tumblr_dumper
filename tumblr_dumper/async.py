@@ -26,7 +26,7 @@ class AsyncNetworkIO:
     async def get(self, url):
         logger.debug('GET {}'.format(url))
         try:
-            r = await self.session.get(url, proxy='http://127.0.0.1:8118')
+            r = await self.session.get(url)
             r = json.loads(await r.text())
         except aiohttp.ClientError as e:
             raise ConnectionException(e)
@@ -101,6 +101,7 @@ class AsyncTumblrDumper:
     def __init__(self, blog_identifier, api_key):
         self.tumblr_fetcher = AsyncTumblrFetcher(blog_identifier, api_key)
         self.buffer = UniqueQueue(key=lambda x: (x.id, x.timestamp))
+        self.stop = False
 
     async def __aiter__(self):
         return self
@@ -117,9 +118,16 @@ class AsyncTumblrDumper:
             return self.buffer.get()
         else:
             try:
-                await self.reload()
+                if self.stop:
+                    raise NoPostException()
+                else:
+                    await self.reload()
             except NoPostException:
-                await self.tumblr_fetcher.network.session.close()
-                raise StopAsyncIteration()
+                self.stop = True
+                if len(self.buffer) == 0:
+                    await self.tumblr_fetcher.network.session.close()
+                    raise StopAsyncIteration()
+                else:
+                    return self.buffer.get()
             else:
                 return self.buffer.get()

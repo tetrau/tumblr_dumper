@@ -4,6 +4,8 @@
 ```python
 import os
 from tumblr_dumper import TumblrDumper
+
+
 API_KEY = os.getenv('api_key') # the tumblr api key
 BLOG = 'staff'
 td =  TumblrDumper(BLOG, API_KEY)
@@ -12,6 +14,26 @@ for post in td:
     # do something with the post
 ```
 It's that **>>simple<<**.
+
+Or, use `tumblr.async`
+
+```python
+import os
+from tumblr_dumper.async import AsyncTumblrDumper
+import asyncio
+
+
+API_KEY = os.getenv('api_key')
+BLOG = 'staff'
+async def main():
+    td = AsyncTumblrDumper(BLOG, API_KEY)
+    async for post in td:
+        print(post)
+        # do something with the post
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+```
 
 The post that iterated from TumblrDumper will be an instance of TumblrPost.
 ```python

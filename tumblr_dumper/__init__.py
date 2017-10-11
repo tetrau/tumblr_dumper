@@ -2,6 +2,7 @@ import logging
 import requests
 import requests.exceptions
 import json.decoder
+import requests_oauthlib
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -16,8 +17,12 @@ class NetworkIO:
     response in dict.
     """
 
-    def __init__(self):
+    def __init__(self, proxy=None, auth=None):
         self.session = requests.session()
+        if proxy:
+            self.session.proxies.update(proxy)
+        if auth:
+            self.session.auth = requests_oauthlib.OAuth1(**auth)
 
     def get(self, url):
         logger.debug('GET {}'.format(url))
@@ -61,10 +66,14 @@ class TumblrFetcher:
     """
     API_URL = 'https://api.tumblr.com/v2/blog/{blog}/posts?reblog_info=true&offset={offset}&api_key={api_key}'
 
-    def __init__(self, blog_identifier, api_key):
+    def __init__(self, blog_identifier, api_key, proxy=None, oauth=None):
         self.blog = blog_identifier
         self.api_key = api_key
-        self.network = NetworkIO()
+        if oauth:
+            self.api_key = oauth['client_key']
+        if proxy:
+            proxy = {'https': proxy}
+        self.network = NetworkIO(proxy, oauth)
         self.prev_result = None
         self.prev_offset = 0
 
@@ -115,8 +124,16 @@ class TumblrDumper:
     It iterate all posts without duplication.
     """
 
-    def __init__(self, blog_identifier, api_key):
-        self.tumblr_fetcher = TumblrFetcher(blog_identifier, api_key)
+    def __init__(self, blog_identifier, api_key, proxy=None, oauth=None):
+        """
+        Support http proxy: write like proxy = 'http://127.0.0.1:1024' or
+                                                'http://user:pass@10.10.1.10:3128/'
+        Support tumblr OAuth1.0a: write oauth like oauth = {'client_key':'...',
+                                                            'client_secret':'...',
+                                                            'resource_owner_key':'...',
+                                                            'resource_owner_secret':'...'}
+        """
+        self.tumblr_fetcher = TumblrFetcher(blog_identifier, api_key, proxy=proxy, oauth=oauth)
         self.buffer = UniqueQueue(key=lambda x: (x.id, x.timestamp))
         self.stop = False
 

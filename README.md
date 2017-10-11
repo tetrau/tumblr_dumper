@@ -42,7 +42,23 @@ The post that iterated from TumblrDumper will be an instance of TumblrPost.
 >>> post.blog_name # Equivalent to post.to_dict['id']
 'staff'
 ```
-
+## Using HTTP proxy
+```python
+tp = TumblrDumper(BLOG, API_KEY,
+                  proxy='http://127.0.0.1:1024')
+# or
+tp = TumblrDumper(BLOG, API_KEY,
+                  proxy='http://user:password@127.0.0.1:1024')
+```
+## Using OAuth1.0a
+```python
+oauth = {'client_key':'...',
+         'client_secret':'...',
+         'resource_owner_key':'...',
+         'resource_owner_secret':'...'}
+tp = TumblrDumper(BLOG, API_KEY, oauth=oauth)
+```
+Notice that **oauth will override api_key**.
 ## Exceptions
 It is now known that wrong blog name will raise `tumblr_dumper.exceptions.HTTPException((404, 'Not Found'))`.
 

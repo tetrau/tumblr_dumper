@@ -21,6 +21,5 @@ def tumblr_oauth_helper(client_key, client_secret, proxy=None):
     data = conn.recv(1024)
     request_line = data.decode().split('\n')[0]
     call_back_url = 'http://127.0.0.1' + request_line.split()[1]
-    print(call_back_url)
     oauth.parse_authorization_response(call_back_url)
     return oauth.fetch_access_token(ACCESS_TOKEN_URL)

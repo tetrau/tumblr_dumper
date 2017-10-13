@@ -14,6 +14,7 @@ def tumblr_oauth_helper(client_key, client_secret, proxy=None):
     oauth.fetch_request_token(REQUEST_TOKEN_URL)
     authorize_url = oauth.authorization_url(AUTHORIZE_URL)
     print('go to', authorize_url)
+    # listen to 127.0.0.1:5000 wait for callback
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('127.0.0.1', 5000))
     s.listen(1)

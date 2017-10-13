@@ -25,6 +25,11 @@ class NetworkIO:
             self.session.auth = requests_oauthlib.OAuth1(**auth)
 
     def get(self, url):
+        """
+        GET page from <url>, and return a python dict object.
+        It will raise ConnectionException if solid json content is not received.
+        It will raise HTTPException if status is not 200 OK.
+        """
         logger.debug('GET {}'.format(url))
         try:
             r = self.session.get(url).json()
@@ -42,6 +47,7 @@ class NetworkIO:
 class TumblrPost(QuickAccessDict):
     """
     Tumblr post.
+
     """
 
 
@@ -78,6 +84,11 @@ class TumblrFetcher:
         self.prev_offset = 0
 
     def fetch(self):
+        """
+        Fetch posts from tumblr blog.
+        It will automatically fetch again if bloger deletes some posts,
+        which prevents missing posts.
+        """
         def is_first_fetch():
             return self.prev_result is None
 

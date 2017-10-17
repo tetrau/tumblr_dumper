@@ -89,6 +89,7 @@ class TumblrFetcher:
         It will automatically fetch again if bloger deletes some posts,
         which prevents missing posts.
         """
+
         def is_first_fetch():
             return self.prev_result is None
 
@@ -155,10 +156,33 @@ class TumblrDumper:
         result = self.tumblr_fetcher.fetch()
         self.buffer.push_many(result)
 
+    def exception_handler(self, e):
+        """
+        It handles all the exception except StopIteration in the iteration.
+        Return None will raise the exception.
+        Can be overridden by subclass to handle exception in cases like for loop.
+        It takes two position argument: self and the exception.
+        When exception raised in the iteration, and exception_handler returns non None,
+        it will call the 'true __next__' method __next again, till no exception raised,
+        and the __next__ return, the iteration continues.
+        """
+
+    def __next__(self):
+        while True:
+            try:
+                result = self.__next()
+            except StopIteration:
+                raise
+            except Exception as e:
+                if self.exception_handler(e) is None:
+                    raise
+            else:
+                return result
+
     def total_posts(self):
         return self.tumblr_fetcher.prev_result.response.blog.total_posts
 
-    def __next__(self):
+    def __next(self):
         if len(self.buffer) > 0:
             return self.buffer.get()
         else:

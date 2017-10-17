@@ -179,8 +179,15 @@ class TumblrDumper:
             else:
                 return result
 
+    @property
+    def blog_info(self):
+        try:
+            return self.tumblr_fetcher.prev_result.response.blog
+        except AttributeError:
+            return None
+
     def total_posts(self):
-        return self.tumblr_fetcher.prev_result.response.blog.total_posts
+        return self.blog_info.total_posts
 
     def __next(self):
         if len(self.buffer) > 0:

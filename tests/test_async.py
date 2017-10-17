@@ -21,7 +21,7 @@ async def main():
     tumblr_dumper = AsyncTumblrDumper('staff', api_key=api_key)
     async for post in tumblr_dumper:
         count += 1
-        print('fetch posts {:06}/{:06}'.format(count, tumblr_dumper.total_posts()))
+        print('fetch posts {:06}/{:06}'.format(count, tumblr_dumper.blog_info.total_posts()))
         time.sleep(0.05)
 
 

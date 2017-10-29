@@ -135,6 +135,8 @@ class TumblrDumper:
     The generator is used to dump all posts from a tumblr blog.
     It iterate all posts without duplication.
     """
+    CONTINUE = True
+    RAISE_EXCEPTION = None
 
     def __init__(self, blog_identifier, api_key, proxy=None, oauth=None):
         """
@@ -166,6 +168,7 @@ class TumblrDumper:
         it will call the 'true __next__' method __next again, till no exception raised,
         and the __next__ return, the iteration continues.
         """
+        return self.RAISE_EXCEPTION
 
     def __next__(self):
         while True:

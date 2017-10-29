@@ -28,7 +28,7 @@ class MyTumblrDumper(TumblrDumper):
             print(e)
             print('sleep 5 sec')
             time.sleep(5)
-            return True
+            return self.CONTINUE
 
 
 tumblr_dumper = MyTumblrDumper('staff', api_key=api_key)

@@ -64,5 +64,31 @@ It is now known that wrong blog name will raise `tumblr_dumper.exceptions.HTTPEx
 
  And wrong api key will raise `tumblr_dumper.exceptions.HTTPException((401, 'Unauthorized'))`.
 
+## Handle exceptions in for loop
+when exception rasied in an iterator, for loop will break and can't continue again.
+You can write an exception_handler to handle exceptions inside for loop.
+```python
+from tumblr_dumper import TumblrDumper, ConnectionException
+class MyTumblrDumper(TumblrDumper):
+    def __init__(self, *args, **kwargs):
+        self.retry = 0
+        super().__init__(*args, **kwargs)
+    # write a subclass of TumblrDumper and override exception_handler method.
+    # exception_handler takes two position arguments. self and the raised exception.
+    # return self.RAISE_EXCEPTION or None rasied the exception.
+    # return self.CONTINUE or anything but None will continue the for loop.
+    def exception_handler(self, e):
+        if isinstance(e, ConnectionException):
+            if self.retry == 5:
+                print('retry too many times')
+                raise StopIteration()
+            self.retry += 1
+            print(e)
+            print('sleep 5 sec')
+            time.sleep(5)
+            return self.CONTINUE
+```
+
+
 ## API key
 Check out the tumblr offical [api document](https://www.tumblr.com/docs/en/api/v2#auth).

@@ -88,7 +88,20 @@ class MyTumblrDumper(TumblrDumper):
             time.sleep(5)
             return self.CONTINUE
 ```
-
+## Oauth authorization
+You can use `tumblr_oauth_helper` in `tumblr_dumper.tools` to help completing Oauth authorization process.
+```python
+from tumblr_dumper.tools import tumblr_oauth_helper
+# client_key is the tumblr API key
+# client_secret is the tumblr API secret
+# it will print 'go to https://.......' just open that url in browser,
+# and login, if success, it wiil print out
+# {'client_key':'...',
+#  'client_secret':'...',
+#  'resource_owner_key':'...',
+#  'resource_owner_secret':'...'}
+tumblr_oauth_helper(client_key, client_secret)
+```
 
 ## API key
 Check out the tumblr offical [api document](https://www.tumblr.com/docs/en/api/v2#auth).
